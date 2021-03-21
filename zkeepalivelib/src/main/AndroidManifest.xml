@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="cc.ibooker.zkeepalivelib">
+
+    <!--设备重启权限-->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!--忽略电量优化-->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!--接收开机广播-->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!--网络状态-->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--前置服务-->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+
+    <!--后台运行白名单-->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
+    <!-- 允许设置时区-->
+    <uses-permission android:name="android.permission.SET_TIME_ZONE"/>
+
+    <application>
+        <!--1像素Activity-->
+        <activity
+            android:name=".keep.OnePixelActivity"
+            android:screenOrientation="portrait"
+            android:theme="@style/OnePixelActivityStyle" />
+        <!--开屏和闭屏监听-->
+        <receiver android:name=".receivers.ScreenReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.SCREEN_OFF" />
+                <action android:name="android.intent.action.SCREEN_ON" />
+                <!--锁屏-->
+                <action android:name="android.intent.action.USER_PRESENT" />
+            </intent-filter>
+        </receiver>
+        <!--前置服务-->
+        <service
+            android:name=".keep.ForeService"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="cc.ibooker.zkeepalivelib.keep_fore_service" />
+            </intent-filter>
+        </service>
+        <!--保活服务-->
+        <service
+            android:name=".alive.AliveService"
+            android:enabled="true"
+            android:exported="false"
+            android:process=":keep_alive_service">
+            <intent-filter>
+                <action android:name="cc.ibooker.zkeepalivelib.keep_alive_service" />
+            </intent-filter>
+        </service>
+        <!--监听系统广播-->
+        <receiver android:name=".receivers.SysBroadcastReceiver">
+            <intent-filter>
+                <!--开机广播-->
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <!--网络状态更新-->
+                <action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
+                <action android:name="android.net.wifi.STATE_CHANGE" />
+                <action
+                    android:name="android.net.conn.CONNECTIVITY_CHANGE"
+                    tools:ignore="BatteryLife" />
+                <!--电池电量变化-->
+                <action android:name="android.intent.action.BATTERY_CHANGED" />
+                <!--应用安装状态变化-->
+                <action android:name="android.intent.action.PACKAGE_ADDED" />
+                <action android:name="android.intent.action.PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <!--屏幕亮度变化-->
+                <action android:name="android.intent.action.SCREEN_OFF" />
+                <action android:name="android.intent.action.SCREEN_ON" />
+                <!--锁屏-->
+                <action android:name="android.intent.action.USER_PRESENT" />
+            </intent-filter>
+        </receiver>
+        <!--Android 5.0 JobScheduler-->
+        <service
+            android:name=".alive.JobSchedulerService"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+        <!--Widget倒计时小组件-->
+        <receiver android:name=".appwidget.CountDownWidget">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/zka_countdown_widget_info" />
+        </receiver>
+    </application>
+</manifest>

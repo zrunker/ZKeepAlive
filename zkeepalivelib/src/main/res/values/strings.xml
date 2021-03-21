@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">ZKeepAlive</string>
+    <string name="fore_service">前置服务</string>
+    <string name="fore_service_text">正在运行前置服务ForeService</string>
+    <string name="alive_service">保活服务</string>
+    <string name="alive_service_text">正在运行保活服务AliveService</string>
+    <string name="appwidget_text">倒计时</string>
+</resources>
