@@ -15,9 +15,10 @@ import cc.ibooker.zkeepalivelib.manager.ForeManager
  */
 class AliveWorker(private var context: Context, workerParams: WorkerParameters) :
     Worker(context, workerParams) {
+    private val TAG = "AliveWorker"
 
     override fun doWork(): Result {
-        Log.d("AliveWorker=", "doWork")
+        Log.d(TAG, "doWork")
         ForeManager.instance.startForeService(context)
         AliveManager.instance.startAliveService(context)
         return Result.success()

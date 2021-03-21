@@ -23,8 +23,6 @@ import cc.ibooker.zkeepalivelib.manager.ZNotificationManager
  * C：前置服务，startForeground(int id, Notification notification);
  * D：onDestroy()方法中重启服务。
  *
- * PS：双进程保护，android:process=":keep_fore_service"。
- *
  * @author 邹峰立
  */
 class ForeService : Service() {

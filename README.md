@@ -76,67 +76,169 @@
 
 #### 2、实现
 
-##### 2.1、降低进程被杀死概率
+##### ~~方案一：双进程保活jni。~~
 
-方案一：1像素Activity，
+##### 方案一：双进程保活Aidl。
 
-
-
-##### 2.2、提升杀死后进程拉活机制
+Android 5.0以上版本，采用双进程保活基本上没用了。
 
 
 
-~~1、高优先级Service。~~
-~~2、双进程保护Aidl。~~
-~~3、Android 5.0 JobScheduler。~~
-~~4、AppWidget小组件。~~
-~~5、对一些系统广播监听（开机、锁屏、变暗、APP安装更新...）。~~
-~~6、自启动白名单。~~
-~~7、Android 6.0 Doze模式-后台运行白名单。~~
-~~8、1像素Activity。~~
-~~9、Workmanager。~~
+##### 方案二：Android 5.0 JobScheduler。
 
-10、 低内存白名单。
+JobScheduler是Android 5.0提出的定时事件方案，本例中是在循环定时任务中启动保活服务。但JobScheduler在Android 8.0+中体现不是很好，甚至定时任务会失效。
 
-11、双进程保活jni。
 
-12、账号同步拉活。
 
+##### 方案三：1像素Activity。
+
+即监听亮屏和暗屏广播，实现Activity开启和关闭。
+
+
+
+##### 方案四：Android 6.0 Doze模式-后台运行白名单。
+
+即运行应用在低电量情况下进行后台运行。
+
+```
 /**
+ * 针对N以上的Doze模式
+ */
+@SuppressLint("BatteryLife")
+fun isIgnoreBatteryOption(context: Context) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ZKeepAlive.isKeepalive) {
+        try {
+            val intent = Intent()
+            val packageName = context.packageName
+            val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+//                    intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                 intent.action = Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS
+                 intent.data = Uri.parse("package:$packageName")
+                 context.startActivity(intent)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+}
+```
 
- * Android 闹钟实例：
 
- * <p>
 
- * 1、杀不死的服务Service，只能在进程存在的情况下，降低系统回收几率。
+##### 方案五：应用自启动白名单。
 
- * - A：android:priority="1000"最高权限；
+```
+// 根据不同厂商进入自启动设置
+private fun getSettingIntent(): Intent {
+    var componentName: ComponentName? = null
+    val brand = Build.BRAND
+    when (brand.toLowerCase(Locale.ROOT)) {
+        "samsung" -> componentName = ComponentName(
+                "com.samsung.android.sm",
+                "com.samsung.android.sm.app.dashboard.SmartManagerDashBoardActivity"
+            )
+        "huawei" -> componentName = ComponentName(
+                "com.huawei.systemmanager",
+                "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity"
+            )
+        "xiaomi" -> componentName = ComponentName(
+                "com.miui.securitycenter",
+                "com.miui.permcenter.autostart.AutoStartManagementActivity"
+            )
+        "vivo" -> componentName = ComponentName(
+                "com.iqoo.secure",
+                "com.iqoo.secure.ui.phoneoptimize.AddWhiteListActivity"
+            )
+        "oppo" -> componentName = ComponentName(
+                "com.coloros.oppoguardelf",
+                "com.coloros.powermanager.fuelgaue.PowerUsageModelActivity"
+            )
+        "360" -> componentName = ComponentName(
+                "com.yulong.android.coolsafe",
+                "com.yulong.android.coolsafe.ui.activity.autorun.AutoRunListActivity"
+            )
+         "meizu" -> componentName = ComponentName(
+                "com.meizu.safe",
+                "com.meizu.safe.permission.SmartBGActivity"
+            )
+        "oneplus" -> componentName = ComponentName(
+                "com.oneplus.security",
+                "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"
+            )
+    }
+    val intent = Intent()
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    if (componentName != null) {
+        intent.component = componentName
+    } else {
+        intent.action = Settings.ACTION_SETTINGS
+    }
+    return intent
+}
+```
 
- * - B:onStartCommand返回值设置，getApplicationInfo().targetSdkVersion < Build.VERSION_CODES.ECLAIR ? START_STICKY_COMPATIBILITY : START_STICKY;
 
- * - C:前置服务，startForeground(int id, Notification notification);
 
- * - D:onDestroy()方法中重启服务。
+##### 方案六：Workmanager循环任务。
 
- * <p>
+Workmanager为Android 8.0+提供了完美的定时任务方案，利用Workmanager实现一个循环任务，并在任务中启动保活服务。
 
- * 2、双进程保护：AIDL，开启两个Service(A和B)，运行在两个不同的进程中android:process=":remote_service"，实现A和B相互守护。
 
- * <p>
 
- * 3、Android 5.0 JobScheduler，Android 6.0 Doze模式。
+##### 方案七：AppWidget小组件。
 
- * <p>
+如果使用应用者是合作方，不妨试试这种方案，基本上可以达到100%保活，前提条件是用户要将小组件移动桌面。
 
- * 4、AppWidget小组件开发，定义倒计时小组件，在小组件中启动闹钟服务。
+本例中是自定义倒计时小组件，并在小组件onUpdate中启动保活服务。
 
- * <p>
 
- * 5、对一些系统广播监听（开机、锁屏、安装更新APP...）
-   *
 
- * @author 邹峰立
-   */
+##### ~~方案八：账号同步拉活。~~
+
+##### ~~方案九：低内存白名单。~~
+
+
+
+##### 加强方案一：高优先级Service。
+
+提高Service的优先级，在进程存在的情况下，降低系统回收几率。
+
+- A：android:priority="1000"最高权限。
+
+- B：onStartCommand返回值设置：
+
+  getApplicationInfo().targetSdkVersion < Build.VERSION_CODES.ECLAIR ? START_STICKY_COMPATIBILITY : START_STICKY
+
+- C：前置服务，startForeground(int id, Notification notification)。
+
+- D：onDestroy()方法中重启服务。
+
+##### 加强方案二：监听系统广播。
+
+```
+<!--开机广播-->
+<action android:name="android.intent.action.BOOT_COMPLETED" />
+<!--网络状态更新-->
+<action android:name="android.net.wifi.WIFI_STATE_CHANGED" />
+<action android:name="android.net.wifi.STATE_CHANGE" />
+<action
+  android:name="android.net.conn.CONNECTIVITY_CHANGE"
+  tools:ignore="BatteryLife" />
+<!--电池电量变化-->
+<action android:name="android.intent.action.BATTERY_CHANGED" />
+<!--应用安装状态变化-->
+<action android:name="android.intent.action.PACKAGE_ADDED" />
+<action android:name="android.intent.action.PACKAGE_REPLACED" />
+<action android:name="android.intent.action.PACKAGE_REMOVED" />
+<!--屏幕亮度变化-->
+<action android:name="android.intent.action.SCREEN_OFF" />
+<action android:name="android.intent.action.SCREEN_ON" />
+<!--锁屏-->
+<action android:name="android.intent.action.USER_PRESENT" />
+```
+
+监听系统广播，在广播中启动相关进程和保活服务。
 
 
 
